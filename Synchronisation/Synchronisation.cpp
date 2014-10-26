@@ -105,6 +105,21 @@ struct ConcurrentCounterRecursiveMutex
     }
 };
 
+struct AtomicCounter
+{
+    std::atomic<int> value;
+    
+    void increment()
+    {
+        ++value;
+    }
+    
+    int get()
+    {
+        return value.load();
+    }
+};
+
 template<typename T>
 void incrementCounter( T& counter, int numIncrements )
 {
@@ -128,7 +143,7 @@ int main( int argc, const char * argv[] )
     // Have one thread do the increment using a lambda function, counts to 100
     {
         Counter counter;
-        std::thread t( [&counter]() { for ( int i = 0; i < 100; ++i ) { counter.increment(); } } );
+        std::thread t( [&counter] () { for ( int i = 0; i < 100; ++i ) { counter.increment(); } } );
         t.join();
         std::cout << "Counter value (single thread): " << counter.value << std::endl;
     }
@@ -198,5 +213,12 @@ int main( int argc, const char * argv[] )
         t.join();
     }
     
+    // -- Atomic for thread safety --
+    {
+        AtomicCounter counter;
+        incrementCounter( counter, 1000 );
+        std::cout << "Counter value (main thread): " << counter.get() << std::endl;
+    }
+
     return 0;
 }
