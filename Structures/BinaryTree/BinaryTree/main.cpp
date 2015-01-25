@@ -48,5 +48,7 @@ int main( int argc, const char * argv[] )
     findValue( tree, 2 );
     findValue( tree, 5 );
     
+    std::cout << "Is BST = " << tree.isBST() << std::endl;
+    
     return 0;
 }

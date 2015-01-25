@@ -255,7 +255,32 @@ public:
         
         return minNode->getData();
     }
+
+    bool isBST( NodePtr node )
+    {
+        if ( !node ) return true;   // or false based on definition
+        
+        // Check if has left node and if the value is smaller, otherwise return false
+        if ( node->left && max( node->left ) > node->data )
+            return false;
+        
+        // Check if has right node and if the value is larger, otherwise return false
+        if ( node->right && min( node->right ) < node->data )
+            return false;
+        
+        // Do this recursively for the left and right side of the node
+        if ( !isBST( node->left ) || !isBST( node->right ) )
+            return false;
+        
+        // If all is good so far we have a BST tree.. pop the champagne
+        return true;
+    }
     
+    bool isBST()
+    {
+        return isBST( root );
+    }
+
     NodePtr find( NodePtr node, const T& key )
     {
         if ( !node ) return NULL;
