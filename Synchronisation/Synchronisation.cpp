@@ -10,6 +10,39 @@
 #include <vector>
 #include <thread>
 
+/*
+ 
+ Demonstrating race conditions using a simple counter and how to address the problem using 
+ thread-safe and atomic counters.
+ 
+ How can a simple increment go wrong when multiple threads are accessing the same resource?
+ Imagine if two or more threads are executing the increment on the same instance of the
+ Counter class. There is no way to know when the operating system switches between the two
+ threads. The code in increment which adds 1 to the counter is not an atomic instruction
+ (except in the atomic counter). Rather, it is executed as a set of smaller instructions,
+ something like:
+ 
+   1. Read the current value into a register
+   2. Increment/add value to the register
+   3. Write from the register to the memory
+ 
+ Let's say that two threads increment by 5 so we expect to see a final value of 10 in the
+ counter. However, if the thread execution is interleaved this is not guaranteed. E.g. if
+ thread B reads the value into its register before thread A has copied its own increment
+ back from its register, both threads A and B will override the counter value with the same
+ value. This is highlighted in the breakdown below:
+ 
+   counter = 0
+ 
+   A:  Reads counter into a register (0)
+   B:  Reads counter into a register (0)
+   B:  Adds value 1 to register (increment by 1)
+   B:  Writes register value (1) back to memory. counter is now 1
+   A:  Adds value 1 to register (increment by 1)
+   A:  Writes register value (1) back to memory. counter is still 1!
+ 
+ */
+
 struct Counter
 {
     int value;
@@ -148,7 +181,7 @@ int main( int argc, const char * argv[] )
         std::cout << "Counter value (single thread): " << counter.value << std::endl;
     }
     
-    int numThreads = 6;
+    int numThreads = std::thread::hardware_concurrency();
 
     // Multi threaded increment which will behave erratically
     {
@@ -191,7 +224,7 @@ int main( int argc, const char * argv[] )
     // to acquire the lock more than once
     {
 //        ConcurrentCounter counter;
-//        std::thread deadlockThread( [&counter]() { counter(); } );
+//        std::thread deadlockThread( [&counter]() { counter.both(); } );
 //        deadlockThread.join();
 //        std::cout << "This will never be printed due to the deadlock" << std::endl;
     }
@@ -213,12 +246,30 @@ int main( int argc, const char * argv[] )
         t.join();
     }
     
-    // -- Atomic for thread safety --
+    // -- Atomic test --
     {
         AtomicCounter counter;
         incrementCounter( counter, 1000 );
-        std::cout << "Counter value (main thread): " << counter.get() << std::endl;
+        std::cout << "AtomicCounter value: " << counter.get() << std::endl;
     }
 
+    // -- Atomic for thread safety --
+    {
+        AtomicCounter counter;
+        std::vector<std::thread> threads;
+        
+        for ( int i = 0; i < numThreads; ++i )
+        {
+            threads.push_back( std::thread( incrementCounter<AtomicCounter>, std::ref( counter ), 100 ) );
+        }
+        
+        for ( int i = 0; i < numThreads; ++i )
+        {
+            threads[i].join();
+        }
+        
+        std::cout << "AtomicCounter value (" << numThreads << " threads): " << counter.get() << std::endl;
+    }
+    
     return 0;
 }
