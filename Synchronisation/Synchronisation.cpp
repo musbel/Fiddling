@@ -40,7 +40,7 @@
    B:  Writes register value (1) back to memory. counter is now 1
    A:  Adds value 1 to register (increment by 1)
    A:  Writes register value (1) back to memory. counter is still 1!
- 
+
  */
 
 struct Counter
